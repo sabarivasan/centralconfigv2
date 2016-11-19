@@ -1,7 +1,8 @@
 package com.centralconfig.persist;
 
 /**
- * Created by sabarivasan on 11/16/16.
+ * Interface that must be implemented by a class to serialize its instances to a database
+ * @param <T> the type to be serializable
  */
 public interface DbSerializable<T> {
 

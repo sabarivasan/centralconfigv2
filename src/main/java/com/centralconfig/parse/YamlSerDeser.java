@@ -84,7 +84,7 @@ public final class YamlSerDeser {
     private static void parseKeyValue(Object value,
                                       final SortedSet<LeafNode> leaves, final List<String> currPath) {
         if (value instanceof Map) {
-            visitMap(leaves, (Map<?,?>) value, currPath);
+            visitMap(leaves, (Map<?, ?>) value, currPath);
         } else if (value instanceof List) {
             List<?> list = (List<?>) value;
             for (int i = 0; i < list.size(); i++) {

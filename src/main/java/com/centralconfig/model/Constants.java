@@ -14,7 +14,7 @@ public final class Constants {
     public static final int STRING_BUILDER_INIT_LENGTH_64 = 64;
     public static final int STRING_BUILDER_INIT_LENGTH_128 = 128;
     public static final int STRING_BUILDER_INIT_LENGTH_512 = 512;
-    public static final int STRING_BUILDER_INIT_LENGTH_1024 = 1024;
+    public static final int LENGTH_1024 = 1024;
 
     private Constants() { }
 

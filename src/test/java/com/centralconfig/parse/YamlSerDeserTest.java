@@ -10,6 +10,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -21,7 +22,7 @@ public class YamlSerDeserTest {
 
     @Test
     public void testSerDeser() throws IOException {
-        for (DocType docTypeToTest: DocType.values()) {
+        for (DocType docTypeToTest: DocType.YAML_JSON) {
 
             // Parse canonical document
             String ext = docTypeToTest.toString().toLowerCase();

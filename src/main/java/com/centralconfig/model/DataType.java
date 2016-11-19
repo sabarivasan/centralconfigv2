@@ -13,7 +13,9 @@ public enum DataType {
 
     private final char serCode;
 
-    DataType(char serCode) { this.serCode = serCode; }
+    DataType(char serCode) {
+        this.serCode = serCode;
+    }
 
 
     public char getSerCode() {

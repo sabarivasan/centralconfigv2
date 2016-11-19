@@ -1,0 +1,13 @@
+server:
+    requestLog:
+        appenders:
+          - type: "file"
+            currentLogFilename: "logs/access.log"
+            archivedLogFilenamePattern: "logs/access.%d{yyyy-MM-dd}.log.gz"
+    type: default
+    maxThreads: 40
+    maxQueuedRequests: 5000
+
+dropWizardDateTimeFormat: "DropwizardLegacy"
+
+

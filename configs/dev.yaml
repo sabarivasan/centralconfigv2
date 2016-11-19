@@ -1,0 +1,24 @@
+parentConfigurationFile: configs/base.yaml
+
+server:
+    applicationConnectors:
+        - type: "http"
+          port: 7000
+    adminConnectors:
+        - type: "http"
+          port: 7001
+
+environmentName: dev
+
+
+consulEndpoint: http://dev-wiz-01:8500
+
+namespaceLevels:
+  - label: "Service"
+    description: "The micro-service whose config is represented"
+  - label: "Region"
+    defaultValue: "dev"
+    description: "The Cvent region name"
+  - label: "Branch"
+    defaultValue: "master"
+    description: "The git branch where this config is maintained"

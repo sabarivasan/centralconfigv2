@@ -26,11 +26,14 @@ public class DocPath implements Comparable<DocPath> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         DocPath docPath1 = (DocPath) o;
-
         return getDocPath().equals(docPath1.getDocPath());
     }
 

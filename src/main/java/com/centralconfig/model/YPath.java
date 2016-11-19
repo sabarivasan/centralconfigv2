@@ -8,35 +8,33 @@ import org.apache.commons.lang.StringUtils;
  * This class represents a full-qualified path including namespace path and document path.
  * Document paths may represent leaf nodes or partial paths (sub-trees).
  */
-public class FQPath implements Comparable<FQPath> {
+public class YPath implements Comparable<YPath> {
 
 
     private final String fullPath;
     private final int numNamespaceLevels;
-    private final boolean isLeaf;
     private String namespacePath = null;
     private String docPath = null;
 
 
-    public FQPath(String fullPath, int numNamespaceLevels, boolean isLeaf) {
+    public YPath(String fullPath, int numNamespaceLevels) {
         this.fullPath = fullPath;
         this.numNamespaceLevels = numNamespaceLevels;
-        this.isLeaf = isLeaf;
 
         String[] parts = fullPath.split(DbSerializable.HIER_SEPARATOR);
         if (parts.length < numNamespaceLevels) {
-            throw new IllegalArgumentException("fullPath doesn't agree with number of namespace levels expected");
+            throw new IllegalArgumentException("fullPath doesn't agree with number of namespace levels expected: "
+                                                       + numNamespaceLevels);
         }
         namespacePath = StringUtils.join(parts, DbSerializable.HIER_SEPARATOR, 0, numNamespaceLevels);
         docPath = StringUtils.join(parts, DbSerializable.HIER_SEPARATOR, numNamespaceLevels, parts.length);
     }
 
-    public FQPath(String namespacePath, String docPath, int numNamespaceLevels, boolean isLeaf) {
+    public YPath(String namespacePath, String docPath, int numNamespaceLevels) {
         this.namespacePath = StringUtils.chomp(namespacePath, DbSerializable.HIER_SEPARATOR);
         this.docPath = docPath != null ? docPath : "";
         this.fullPath = this.namespacePath + DbSerializable.HIER_SEPARATOR + this.docPath;
         this.numNamespaceLevels = numNamespaceLevels;
-        this.isLeaf = isLeaf;
     }
 
     /**
@@ -63,18 +61,18 @@ public class FQPath implements Comparable<FQPath> {
         return docPath;
     }
 
-    public boolean isLeaf() {
-        return isLeaf;
-    }
-
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
-        FQPath FQPath = (FQPath) o;
+        YPath yPath = (YPath) o;
 
-        return getFullPath().equals(FQPath.getFullPath());
+        return getFullPath().equals(yPath.getFullPath());
     }
 
     @Override
@@ -83,7 +81,9 @@ public class FQPath implements Comparable<FQPath> {
     }
 
     @Override
-    public int compareTo(FQPath o) {
+    public int compareTo(YPath o) {
         return this.getFullPath().compareTo(o.getFullPath());
     }
+
+
 }

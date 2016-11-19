@@ -22,11 +22,11 @@ public class Document implements DbSerializable<Document> {
     public Document(String ser) {
         String[] rows = ser.split(DbSerializable.SER_ROW_SEPARATOR);
         namespacePath = rows[0].split(DbSerializable.SER_KEY_VALUE_SEPARATOR)[1];
-        SortedSet<LeafNode> leaves = new TreeSet<>();
+        SortedSet<LeafNode> lvs = new TreeSet<>();
         for (int n = 1; n < rows.length; n++) {
-            leaves.add(new LeafNode(rows[n]));
+            lvs.add(new LeafNode(rows[n]));
         }
-        this.leaves = Collections.unmodifiableSortedSet(leaves);
+        this.leaves = Collections.unmodifiableSortedSet(lvs);
     }
 
     public Document(String namespacePath, SortedSet<LeafNode> leaves) {
@@ -45,7 +45,7 @@ public class Document implements DbSerializable<Document> {
 
     @Override
     public String ser() {
-        StringBuilder sb = new StringBuilder(Constants.STRING_BUILDER_INIT_LENGTH_1024);
+        StringBuilder sb = new StringBuilder(Constants.LENGTH_1024);
         serTo(sb);
         return sb.toString();
     }
@@ -120,14 +120,19 @@ public class Document implements DbSerializable<Document> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         Document document = (Document) o;
 
-        if (!getNamespacePath().equals(document.getNamespacePath())) return false;
+        if (!getNamespacePath().equals(document.getNamespacePath())) {
+            return false;
+        }
         return getLeaves().equals(document.getLeaves());
-
     }
 
     @Override
