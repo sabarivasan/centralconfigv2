@@ -5,10 +5,12 @@ import com.centralconfig.model.Constants;
 import com.centralconfig.model.DocType;
 import com.centralconfig.model.Document;
 import com.centralconfig.model.YPath;
+import com.centralconfig.parse.YamlDiffer;
 import com.centralconfig.parse.YamlSerDeser;
 import com.centralconfig.persist.DbSerializable;
 import com.centralconfig.persist.KVStore;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.commons.lang.StringUtils;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,20 +56,41 @@ public class DocumentResource {
     @POST
 //    @Path("/{namespacePath}")
     @Path("{namespacePath: .+}")
-    public Response createDoc(@NotNull @PathParam("namespacePath") String nsPath,
+    public Response upsertDoc(@NotNull @PathParam("namespacePath") String nsPath,
                               @NotNull @Body InputStream body,
                               @NotNull @NotEmpty @QueryParam("author") String author,
+                              @QueryParam("ensureAbsent") @DefaultValue("false") boolean ensureAbsent,
                               @NotNull @HeaderParam("Content-Type") String contentType) {
 
         try {
             validateNsPath(nsPath);
-            Document doc = YamlSerDeser.parse(nsPath, body);
 
             // 1 key-value per document
-            String ser = doc.ser();
-            kvStore.put(nsPath, ser);
+            // TODO: get sub-document at yPath
+            Optional<String> existing = kvStore.getValueAt(nsPath);
+            if (ensureAbsent && existing.isPresent()) {
+                return Response.status(Response.Status.PRECONDITION_FAILED)
+                        .entity(String.format("Document at namespace path '%s' already exists", nsPath)).build();
+            }
 
-            return Response.status(Response.Status.CREATED).entity(ser).build();
+            String diff;
+
+            Document newDoc = YamlSerDeser.parse(nsPath, body);
+            String serNewDoc = newDoc.ser();
+            Response.Status status;
+            if (existing.isPresent()) {
+                Document oldDoc = new Document(existing.get());
+                diff = StringUtils.join(YamlDiffer.compare(oldDoc, newDoc), '\n');
+                status = Response.Status.OK;
+            } else {
+                diff = serNewDoc;
+                status = Response.Status.CREATED;
+            }
+
+            // 1 key-value per document
+            kvStore.put(nsPath, serNewDoc);
+
+            return Response.status(status).entity(diff).build();
         } catch (IllegalArgumentException iae) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(iae.getMessage()).build();
@@ -137,7 +160,7 @@ public class DocumentResource {
 
     private void validateNsPath(String nsPath) {
         String[] parts = nsPath.split(DbSerializable.HIER_SEPARATOR);
-        if (parts.length < config.getNumNamespaceLevels()) {
+        if (parts.length != config.getNumNamespaceLevels()) {
             throw new IllegalArgumentException(
                     String.format("namespace path '%s' doesn't agree with number of namespace levels expected: %d",
                             nsPath, config.getNumNamespaceLevels()));

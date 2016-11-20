@@ -18,14 +18,19 @@ import java.util.TreeSet;
 public class Document implements DbSerializable<Document> {
     private final String namespacePath;
     private final SortedSet<LeafNode> leaves;
+    private Map<String, Value> leafValuesByPath = null;
 
     public Document(String ser) {
         String[] rows = ser.split(DbSerializable.SER_ROW_SEPARATOR);
         namespacePath = rows[0].split(DbSerializable.SER_KEY_VALUE_SEPARATOR)[1];
         SortedSet<LeafNode> lvs = new TreeSet<>();
+        Map<String, Value>  lValuesByPath = new HashMap<>();
         for (int n = 1; n < rows.length; n++) {
-            lvs.add(new LeafNode(rows[n]));
+            LeafNode leafNode = new LeafNode(rows[n]);
+            lvs.add(leafNode);
+            lValuesByPath.put(rows[n], leafNode.getValue());
         }
+        this.leafValuesByPath = Collections.unmodifiableMap(lValuesByPath);
         this.leaves = Collections.unmodifiableSortedSet(lvs);
     }
 
@@ -41,6 +46,20 @@ public class Document implements DbSerializable<Document> {
 
     public SortedSet<LeafNode> getLeaves() {
         return leaves;
+    }
+
+    public Value getValueForLeaf(String leafPath) {
+        constructLeafValuesByPath();
+        return leafValuesByPath.get(leafPath);
+    }
+
+    private void constructLeafValuesByPath() {
+        if (leafValuesByPath == null) {
+            leafValuesByPath = new HashMap<>();
+            for (LeafNode leaf: leaves) {
+                leafValuesByPath.put(leaf.getLeaf().getDocPath(), leaf.getValue());
+            }
+        }
     }
 
     @Override
@@ -141,4 +160,5 @@ public class Document implements DbSerializable<Document> {
         result = 31 * result + getLeaves().hashCode();
         return result;
     }
+
 }
