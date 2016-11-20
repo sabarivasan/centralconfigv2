@@ -16,6 +16,9 @@ public class CentralConfigConfiguration extends CventConfiguration {
     @JsonProperty
     private String consulEndpoint;
 
+    @JsonProperty
+    private ConfigChangePublish configChangePublish;
+
     public int getNumNamespaceLevels() {
         return getNamespaceLevels().size();
     }
@@ -34,6 +37,14 @@ public class CentralConfigConfiguration extends CventConfiguration {
 
     public void setConsulEndpoint(String consulEndpoint) {
         this.consulEndpoint = consulEndpoint;
+    }
+
+    public ConfigChangePublish getConfigChangePublish() {
+        return configChangePublish;
+    }
+
+    public void setConfigChangePublish(ConfigChangePublish configChangePublish) {
+        this.configChangePublish = configChangePublish;
     }
 
     /**
@@ -73,5 +84,56 @@ public class CentralConfigConfiguration extends CventConfiguration {
             this.description = description;
         }
 
+    }
+
+    /**
+     * Config for publishing config changes
+     */
+    public static class ConfigChangePublish {
+
+        /**
+         * Controls which destinations we publish config changes to.
+         * - Subscribers: We publish to all subscribers who registered with us (ConfigChangeResource)
+         * - PublishUrl: We publish to the configured publishUrl
+         * - Both: Both the above
+         * - None: Config changes will not be published
+         */
+        public enum Strategy {
+            Subscribers,
+            PublishUrl, // TODO: Come up with a better name for this (like ConfiguredUrl?)
+            Both,
+            None;
+
+            public boolean shouldPublishToSubscribers() {
+                return Subscribers == this || Both == this;
+            }
+
+            public boolean shouldPublishToPublishUrl() {
+                return PublishUrl == this || Both == this;
+            }
+        }
+
+        @JsonProperty
+        private Strategy strategy;
+
+        @JsonProperty
+        private String publishUrl;
+
+
+        public Strategy getStrategy() {
+            return strategy;
+        }
+
+        public void setStrategy(Strategy strategy) {
+            this.strategy = strategy;
+        }
+
+        public String getPublishUrl() {
+            return publishUrl;
+        }
+
+        public void setPublishUrl(String publishUrl) {
+            this.publishUrl = publishUrl;
+        }
     }
 }

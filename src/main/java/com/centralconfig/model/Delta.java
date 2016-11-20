@@ -1,9 +1,12 @@
 package com.centralconfig.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Delta between 2 yaml documents
+ * //TODO:can we make this class immutable and still compatible with Jackson serialization?
  */
-public class Delta {
+public class Delta implements Comparable<Delta> {
 
     /**
      * Type of change
@@ -14,10 +17,19 @@ public class Delta {
         MODIFIED,
     }
 
-    private final DeltaType type;
-    private final String leafPath;
-    private final Value old;
-    private final Value nouveau;
+    @JsonProperty
+    private DeltaType type;
+
+    @JsonProperty
+    private String leafPath;
+
+    @JsonProperty
+    private Value old;
+
+    @JsonProperty("new")
+    private Value nouveau;
+
+    public Delta() { }
 
     public Delta(DeltaType type, String leafPath, Value old, Value nouveau) {
         this.type = type;
@@ -38,8 +50,24 @@ public class Delta {
         return old;
     }
 
+    public void setType(DeltaType type) {
+        this.type = type;
+    }
+
+    public void setLeafPath(String leafPath) {
+        this.leafPath = leafPath;
+    }
+
+    public void setOld(Value old) {
+        this.old = old;
+    }
+
     public Value getNew() {
         return nouveau;
+    }
+
+    public void setNew(Value newVal) {
+        this.nouveau = newVal;
     }
 
     @Override
@@ -78,5 +106,10 @@ public class Delta {
     @Override
     public int hashCode() {
         return getLeafPath().hashCode();
+    }
+
+    @Override
+    public int compareTo(Delta o) {
+        return getLeafPath().compareTo(o.getLeafPath());
     }
 }

@@ -10,8 +10,16 @@ server:
 
 environmentName: dev
 
-
 consulEndpoint: http://dev-wiz-01:8500
+
+configChangePublish:
+  # Controls which destinations we publish config changes to.
+  # Subscribers: We publish to all subscribers who registered with us (ConfigChangeResource)
+  # PublishUrl: We publish to the configured publishUrl
+  # Both: Both the above
+  # None: Config changes will not be published
+  strategy: Both
+  publishUrl: http://localhost:9000/configChange
 
 namespaceLevels:
   - label: "Service"

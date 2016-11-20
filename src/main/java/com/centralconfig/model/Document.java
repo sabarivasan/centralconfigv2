@@ -1,5 +1,6 @@
 package com.centralconfig.model;
 
+import com.centralconfig.parse.YamlDiffer;
 import com.centralconfig.persist.DbSerializable;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
@@ -28,7 +29,7 @@ public class Document implements DbSerializable<Document> {
         for (int n = 1; n < rows.length; n++) {
             LeafNode leafNode = new LeafNode(rows[n]);
             lvs.add(leafNode);
-            lValuesByPath.put(rows[n], leafNode.getValue());
+            lValuesByPath.put(leafNode.getLeaf().getDocPath(), leafNode.getValue());
         }
         this.leafValuesByPath = Collections.unmodifiableMap(lValuesByPath);
         this.leaves = Collections.unmodifiableSortedSet(lvs);
@@ -39,6 +40,10 @@ public class Document implements DbSerializable<Document> {
         this.leaves = Collections.unmodifiableSortedSet(leaves);
     }
 
+
+    public SortedSet<Delta> compareWith(Document right) {
+        return YamlDiffer.compare(this, right);
+    }
 
     public String getNamespacePath() {
         return namespacePath;

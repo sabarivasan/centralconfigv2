@@ -2,6 +2,7 @@ package com.centralconfig.dw;
 
 import com.centralconfig.persist.ConsulKVStore;
 import com.centralconfig.persist.KVStore;
+import com.centralconfig.publish.ConfigChangePublisher;
 import com.centralconfig.resources.DocumentResource;
 import com.cvent.CventApplication;
 import io.dropwizard.setup.Bootstrap;
@@ -27,10 +28,11 @@ public class CentralConfigService extends CventApplication<CentralConfigConfigur
       super.run(config, environment);
 
       KVStore kvStore = new ConsulKVStore(config.getConsulEndpoint());
+      ConfigChangePublisher configChangePublisher = new ConfigChangePublisher(config);
 
 //      environment.jersey().register(new ConfigGenResource(config.getCentralConfigConfig()));
 //      environment.jersey().register(new AuditTrailResource(config.getCentralConfigConfig()));
-      environment.jersey().register(new DocumentResource(config, kvStore));
+      environment.jersey().register(new DocumentResource(config, kvStore, configChangePublisher));
    }
 
    public static void main(String[] args) throws Exception {

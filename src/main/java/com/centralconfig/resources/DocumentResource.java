@@ -1,7 +1,9 @@
 package com.centralconfig.resources;
 
 import com.centralconfig.dw.CentralConfigConfiguration;
+import com.centralconfig.model.ConfigChange;
 import com.centralconfig.model.Constants;
+import com.centralconfig.model.Delta;
 import com.centralconfig.model.DocType;
 import com.centralconfig.model.Document;
 import com.centralconfig.model.YPath;
@@ -9,6 +11,7 @@ import com.centralconfig.parse.YamlDiffer;
 import com.centralconfig.parse.YamlSerDeser;
 import com.centralconfig.persist.DbSerializable;
 import com.centralconfig.persist.KVStore;
+import com.centralconfig.publish.ConfigChangePublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.validator.constraints.NotEmpty;
@@ -32,6 +35,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
+import java.util.SortedSet;
 
 /**
  * Resource to do CRUD operations on documents
@@ -44,10 +48,13 @@ public class DocumentResource {
 
     private final CentralConfigConfiguration config;
     private final KVStore kvStore;
+    private final ConfigChangePublisher configChangePublisher;
 
-    public DocumentResource(CentralConfigConfiguration config, KVStore kvStore) {
+    public DocumentResource(CentralConfigConfiguration config, KVStore kvStore, ConfigChangePublisher
+            configChangePublisher) {
         this.config = config;
         this.kvStore = kvStore;
+        this.configChangePublisher = configChangePublisher;
     }
 
     /**
@@ -78,9 +85,13 @@ public class DocumentResource {
             Document newDoc = YamlSerDeser.parse(nsPath, body);
             String serNewDoc = newDoc.ser();
             Response.Status status;
+            boolean docChanged = true;
+            SortedSet<Delta> deltas = null;
             if (existing.isPresent()) {
                 Document oldDoc = new Document(existing.get());
-                diff = StringUtils.join(YamlDiffer.compare(oldDoc, newDoc), '\n');
+                deltas = YamlDiffer.compare(oldDoc, newDoc);
+                docChanged = !deltas.isEmpty();
+                diff = StringUtils.join(deltas, '\n');
                 status = Response.Status.OK;
             } else {
                 diff = serNewDoc;
@@ -88,7 +99,12 @@ public class DocumentResource {
             }
 
             // 1 key-value per document
-            kvStore.put(nsPath, serNewDoc);
+            if (docChanged) {
+                kvStore.put(nsPath, serNewDoc);
+
+                configChangePublisher.configChanged(nsPath, new ConfigChange(author, System.currentTimeMillis(),
+                                                                             deltas));
+            }
 
             return Response.status(status).entity(diff).build();
         } catch (IllegalArgumentException iae) {

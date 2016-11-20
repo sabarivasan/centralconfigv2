@@ -1,14 +1,21 @@
 package com.centralconfig.model;
 
 import com.centralconfig.persist.DbSerializable;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Created by sabarivasan on 11/16/16.
+ * //TODO:can we make this class immutable and still compatible with Jackson serialization?
  */
 public class Value implements DbSerializable<Value> {
 
-    private final Object value;
-    private final DataType dataType;
+    @JsonProperty
+    private Object value;
+
+    @JsonProperty
+    private DataType dataType;
+
+    public Value() { }
 
     public Value(String ser) {
         dataType = DataType.fromSerCode(ser.charAt(0));
@@ -34,6 +41,14 @@ public class Value implements DbSerializable<Value> {
         return dataType;
     }
 
+    public void setValue(Object value) {
+        this.value = value;
+    }
+
+    public void setDataType(DataType dataType) {
+        this.dataType = dataType;
+    }
+
     @Override
     public String ser() {
         return dataType.getSerCode() + DbSerializable.SER_DATA_TYPE_SEPARATOR + value.toString();
@@ -48,4 +63,29 @@ public class Value implements DbSerializable<Value> {
     public Value deser(String ser) {
         return new Value(ser);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Value value1 = (Value) o;
+
+        return getValue() != null ? getValue().equals(value1.getValue()) : value1.getValue() == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return getValue() != null ? getValue().hashCode() : 0;
+    }
+
+    @Override
+    public String toString() {
+        return "" + value + " (" + dataType + ")";
+    }
 }
+
