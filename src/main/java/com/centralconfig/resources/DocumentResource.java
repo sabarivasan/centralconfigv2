@@ -14,7 +14,6 @@ import com.centralconfig.persist.KVStore;
 import com.centralconfig.publish.ConfigChangePublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.lang.StringUtils;
-import org.hibernate.validator.constraints.NotEmpty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import retrofit.http.Body;
@@ -67,7 +66,7 @@ public class DocumentResource {
     @Path("{namespacePath: .+}")
     public Response upsertDoc(@NotNull @PathParam("namespacePath") String nsPath,
                               @NotNull @Body InputStream body,
-                              @NotNull @NotEmpty @QueryParam("author") String author,
+                              @QueryParam("author") @DefaultValue("unspecified") String author,
                               @QueryParam("ensureAbsent") @DefaultValue("false") boolean ensureAbsent,
                               @NotNull @HeaderParam("Content-Type") String contentType) {
 

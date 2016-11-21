@@ -1,6 +1,7 @@
 package com.centralconfig.model;
 
 import com.centralconfig.persist.DbSerializable;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -45,6 +46,7 @@ public class Value implements DbSerializable<Value> {
         return dataType.isAlias();
     }
 
+    @JsonIgnore
     public String getAliasDestination() {
         if (!isAlias()) {
             throw new InternalError("This is not an alias");

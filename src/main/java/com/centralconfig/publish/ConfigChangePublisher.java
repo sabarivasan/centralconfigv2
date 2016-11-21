@@ -5,6 +5,7 @@ import com.centralconfig.model.ConfigChange;
 import com.centralconfig.model.ConfigChangeSubscription;
 import com.cvent.JsonSerializer;
 import com.cvent.client.RetrofitClientProvider;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import retrofit.client.Response;
@@ -101,7 +102,9 @@ public class ConfigChangePublisher {
                     client = new RetrofitClientProvider<>(publishUrl, PublisherTransport.class,
                                                           new JacksonConverter(JsonSerializer.copyObjectMapper(
                                                                JsonSerializer.ObjectMapperType.allowUnknownProperties,
-                                                               JsonSerializer.getObjectMapper()))).getClient();
+                                                               JsonSerializer.getObjectMapper().enable(
+                                                                       SerializationFeature.INDENT_OUTPUT))))
+                                                                .getClient();
                     clients.put(publishUrl, client);
                 }
                 client.publish(configChange);
