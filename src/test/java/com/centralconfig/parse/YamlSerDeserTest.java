@@ -10,7 +10,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -49,7 +48,7 @@ public class YamlSerDeserTest {
             TestCase.assertEquals(doc2, doc);
 
             // Test the map instances are equal
-            TestCase.assertEquals(doc.getAsMap(), doc2.getAsMap());
+            TestCase.assertEquals(doc.getAsMap(false), doc2.getAsMap(false));
         }
     }
 }

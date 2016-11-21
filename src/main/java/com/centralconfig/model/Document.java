@@ -2,14 +2,15 @@ package com.centralconfig.model;
 
 import com.centralconfig.parse.YamlDiffer;
 import com.centralconfig.persist.DbSerializable;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -19,11 +20,16 @@ import java.util.TreeSet;
 public class Document implements DbSerializable<Document> {
     private final String namespacePath;
     private final SortedSet<LeafNode> leaves;
+    private SortedSet<LeafNode> leavesAliasesExpanded = null;
+    private final int numNamespaceLevels;
     private Map<String, Value> leafValuesByPath = null;
+    private Set<Alias> aliases = null;
+    private Set<String> namespaceDependencies = null;
 
     public Document(String ser) {
         String[] rows = ser.split(DbSerializable.SER_ROW_SEPARATOR);
         namespacePath = rows[0].split(DbSerializable.SER_KEY_VALUE_SEPARATOR)[1];
+        this.numNamespaceLevels = namespacePath.split(DbSerializable.HIER_SEPARATOR).length;
         SortedSet<LeafNode> lvs = new TreeSet<>();
         Map<String, Value>  lValuesByPath = new HashMap<>();
         for (int n = 1; n < rows.length; n++) {
@@ -37,6 +43,7 @@ public class Document implements DbSerializable<Document> {
 
     public Document(String namespacePath, SortedSet<LeafNode> leaves) {
         this.namespacePath = namespacePath;
+        this.numNamespaceLevels = namespacePath.split(DbSerializable.HIER_SEPARATOR).length;
         this.leaves = Collections.unmodifiableSortedSet(leaves);
     }
 
@@ -52,6 +59,18 @@ public class Document implements DbSerializable<Document> {
     public SortedSet<LeafNode> getLeaves() {
         return leaves;
     }
+
+    // Return sub-tree given an intermediate (or leaf) node
+    private SortedSet<LeafNode> getLeaves(String startingWithDocPath) {
+        SortedSet<LeafNode> subtree = new TreeSet<>();
+        for (LeafNode l: leaves) {
+            if (l.getLeaf().getDocPath().startsWith(startingWithDocPath)) {
+                subtree.add(l);
+            }
+        }
+        return subtree;
+    }
+
 
     public Value getValueForLeaf(String leafPath) {
         constructLeafValuesByPath();
@@ -90,13 +109,78 @@ public class Document implements DbSerializable<Document> {
         return new Document(ser);
     }
 
-    public void expandInDocAliases() {
-        throw new NotImplementedException();
+
+    public Set<String> getDependentNamespacePaths() {
+        initAliasesDependencies();
+        return namespaceDependencies;
     }
 
-    public Map<?, ?> getAsMap() {
+    public Set<Alias> getAliases() {
+        initAliasesDependencies();
+        return aliases;
+    }
+
+    private void initAliasesDependencies() {
+        if (aliases == null) {
+            aliases = new HashSet<>();
+            Set<String> nsDependencies = new HashSet<>();
+            for (LeafNode leaf: leaves) {
+                if (leaf.isAlias()) {
+                    YPath from = new YPath(namespacePath, leaf.getLeaf().getDocPath());
+                    YPath to = new YPath(leaf.getValue().getAliasDestination(), numNamespaceLevels);
+                    aliases.add(new Alias(from, to));
+                    nsDependencies.add(to.getNamespacePath());
+                }
+            }
+            this.namespaceDependencies = Collections.unmodifiableSet(nsDependencies);
+        }
+    }
+
+    /**
+     * Provide the set of dependent documents so that the aliases can be expanded
+     * //TODO: implement in-doc alias expansion
+     * //TODO: Should we support nested alias references?
+     * @param dependentDocs
+     */
+    public void expandAliases(Map<String, Document> dependentDocs) {
+        initAliasesDependencies();
+        if (leavesAliasesExpanded == null) {
+            leavesAliasesExpanded = new TreeSet<>();
+            for (LeafNode leaf: leaves) {
+                if (leaf.isAlias()) {
+                    YPath from = new YPath(namespacePath, leaf.getLeaf().getDocPath());
+                    YPath to = new YPath(leaf.getValue().getAliasDestination(), numNamespaceLevels);
+                    Document dependent = dependentDocs.get(to.getNamespacePath());
+                    if (dependent == null) {
+                        throw new IllegalStateException(String.format("Dependent doc not provided. From:%s To:%s",
+                                                                      from.getFullPath(), to.getFullPath()));
+                    }
+                    SortedSet<LeafNode> depLeaves = dependent.getLeaves(to.getDocPath());
+                    for (LeafNode dep: depLeaves) {
+                        if (dep.getLeaf().getDocPath().equals(to.getDocPath())) {
+                            // This means it is an alias to a leaf node (primitive)
+                            leavesAliasesExpanded.add(new LeafNode(
+                                    new DocPath(from.getDocPath(), true),
+                                    dependent.getValueForLeaf(dep.getLeaf().getDocPath())));
+                        } else {
+                            String suffix = StringUtils.substringAfter(dep.getLeaf().getDocPath(), to.getDocPath());
+                            leavesAliasesExpanded.add(new LeafNode(new DocPath(from.getDocPath() + suffix, true),
+                                                      dep.getValue()));
+                        }
+                    }
+                } else {
+                    leavesAliasesExpanded.add(leaf);
+                }
+            }
+        }
+    }
+
+    public Map<?, ?> getAsMap(boolean expandAliases) {
+        if (expandAliases && leavesAliasesExpanded == null) {
+            throw new InternalError("getAsMap(expandAliases=true) called before expandAliases()");
+        }
         Map root = new HashMap<>();
-        for (LeafNode leaf: leaves) {
+        for (LeafNode leaf: (expandAliases ? leavesAliasesExpanded : leaves)) {
             visitLeaf(leaf, root);
         }
         return root;

@@ -41,6 +41,17 @@ public class Value implements DbSerializable<Value> {
         return dataType;
     }
 
+    public boolean isAlias() {
+        return dataType.isAlias();
+    }
+
+    public String getAliasDestination() {
+        if (!isAlias()) {
+            throw new InternalError("This is not an alias");
+        }
+        return ((String) value).substring(Constants.ALIAS_PREFIX.length());
+    }
+
     public void setValue(Object value) {
         this.value = value;
     }

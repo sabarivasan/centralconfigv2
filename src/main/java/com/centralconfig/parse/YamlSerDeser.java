@@ -36,19 +36,16 @@ public final class YamlSerDeser {
      * @param doc                   the document to write
      * @param docType               the type of document to write as
      * @param outputStream          the stream to write serialized content to
-     * @param expandInDocAliases    should aliases in the document be expanded?
+     * @param expandAliases         should aliases in the document be expanded?
      * @throws IOException          in case something goes wrong
      */
     public static void write(Document doc, DocType docType, OutputStream outputStream,
-                                 boolean expandInDocAliases) throws IOException {
+                                 boolean expandAliases) throws IOException {
 
-        if (expandInDocAliases) {
-            doc.expandInDocAliases();
-        }
         try (OutputStream os = outputStream) {
             JsonFactory factory = DocType.YAML == docType ? new YAMLFactory() : new JsonFactory();
             ObjectMapper mapper = new ObjectMapper(factory);
-            mapper.writeValue(os, doc.getAsMap());
+            mapper.writerWithDefaultPrettyPrinter().writeValue(os, doc.getAsMap(expandAliases));
         }
     }
 

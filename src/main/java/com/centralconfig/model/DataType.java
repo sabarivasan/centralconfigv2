@@ -8,7 +8,7 @@ public enum DataType {
     DOUBLE('D'),
     INT('I'),
     BOOL('B'),
-    ANCHOR('A');
+    ALIAS('A');
 
 
     private final char serCode;
@@ -30,8 +30,8 @@ public enum DataType {
         } else if (val instanceof Boolean) {
             return BOOL;
         } else if (val instanceof String) {
-            if (((String) val).startsWith(Constants.ANCHOR_PREFIX)) {
-                return ANCHOR;
+            if (((String) val).startsWith(Constants.ALIAS_PREFIX)) {
+                return ALIAS;
             } else {
                 return STRING;
             }
@@ -46,5 +46,9 @@ public enum DataType {
             }
         }
         return null;
+    }
+
+    public boolean isAlias() {
+        return ALIAS == this;
     }
 }

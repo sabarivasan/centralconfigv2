@@ -3,7 +3,7 @@ package com.centralconfig.model;
 import com.centralconfig.persist.DbSerializable;
 
 /**
- * Created by sabarivasan on 11/16/16.
+ * A leaf node in a yaml document. IOW, it contains a leaf ypath and a value.
  */
 public class LeafNode implements Comparable<LeafNode>, DbSerializable<LeafNode> {
 
@@ -27,6 +27,10 @@ public class LeafNode implements Comparable<LeafNode>, DbSerializable<LeafNode> 
 
     public Value getValue() {
         return value;
+    }
+
+    public boolean isAlias() {
+        return value.isAlias();
     }
 
     @Override

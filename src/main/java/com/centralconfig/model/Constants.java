@@ -5,8 +5,10 @@ package com.centralconfig.model;
  */
 public final class Constants {
 
-    // The prefix for anchors in a document
-    public static final String ANCHOR_PREFIX = "&";
+    // The prefix for aliases in a document
+    // Aliases are references from nodes in one document to another part of the same document or a different document.
+    // Aliases bring in the entire sub-tree referenced
+    public static final String ALIAS_PREFIX = "**";
 
     public static final int STRING_BUILDER_INIT_LENGTH_8 = 8;
     public static final int STRING_BUILDER_INIT_LENGTH_16 = 16;

@@ -34,6 +34,8 @@ import javax.ws.rs.core.Response;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.SortedSet;
 
@@ -146,6 +148,11 @@ public class DocumentResource {
                     entity = doc.get();
                 } else {
                     Document d = new Document(doc.get());
+
+                    if (expandAliases) {
+                        d.expandAliases(getDependentDocsFor(d));
+                    }
+
                     ByteArrayOutputStream baos = new ByteArrayOutputStream(Constants.LENGTH_1024);
                     YamlSerDeser.write(d, format, baos, expandAliases);
                     entity = baos.toByteArray();
@@ -182,5 +189,18 @@ public class DocumentResource {
                             nsPath, config.getNumNamespaceLevels()));
         }
     }
+
+    private Map<String, Document> getDependentDocsFor(Document srcDoc) {
+        Map<String, Document> dependencies = new HashMap<>();
+        for (String nsPath: srcDoc.getDependentNamespacePaths()) {
+            Optional<String> doc = kvStore.getValueAt(nsPath);
+            if (!doc.isPresent()) {
+                throw new IllegalArgumentException("Cannot find alias target document at " + nsPath);
+            }
+            dependencies.put(nsPath, new Document(doc.get()));
+        }
+        return dependencies;
+    }
+
 
 }

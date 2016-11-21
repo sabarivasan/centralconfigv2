@@ -30,11 +30,11 @@ public class YPath implements Comparable<YPath> {
         docPath = StringUtils.join(parts, DbSerializable.HIER_SEPARATOR, numNamespaceLevels, parts.length);
     }
 
-    public YPath(String namespacePath, String docPath, int numNamespaceLevels) {
+    public YPath(String namespacePath, String docPath) {
         this.namespacePath = StringUtils.chomp(namespacePath, DbSerializable.HIER_SEPARATOR);
         this.docPath = docPath != null ? docPath : "";
         this.fullPath = this.namespacePath + DbSerializable.HIER_SEPARATOR + this.docPath;
-        this.numNamespaceLevels = numNamespaceLevels;
+        this.numNamespaceLevels = namespacePath.split(DbSerializable.HIER_SEPARATOR).length;
     }
 
     /**
