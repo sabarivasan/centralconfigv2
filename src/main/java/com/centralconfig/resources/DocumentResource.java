@@ -12,6 +12,7 @@ import com.centralconfig.parse.YamlSerDeser;
 import com.centralconfig.persist.DbSerializable;
 import com.centralconfig.persist.KVStore;
 import com.centralconfig.publish.ConfigChangePublisher;
+import com.centralconfig.publish.DocumentDependencyManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -50,12 +51,14 @@ public class DocumentResource {
     private final CentralConfigConfiguration config;
     private final KVStore kvStore;
     private final ConfigChangePublisher configChangePublisher;
+    private final DocumentDependencyManager docDependencyManager;
 
     public DocumentResource(CentralConfigConfiguration config, KVStore kvStore, ConfigChangePublisher
-            configChangePublisher) {
+            configChangePublisher, DocumentDependencyManager docDependencyManager) {
         this.config = config;
         this.kvStore = kvStore;
         this.configChangePublisher = configChangePublisher;
+        this.docDependencyManager = docDependencyManager;
     }
 
     /**
@@ -103,8 +106,10 @@ public class DocumentResource {
             if (docChanged) {
                 kvStore.put(nsPath, serNewDoc);
 
-                configChangePublisher.configChanged(nsPath, new ConfigChange(author, System.currentTimeMillis(),
-                                                                             deltas));
+                ConfigChange configChange = new ConfigChange(nsPath, author, System.currentTimeMillis(),
+                                                             deltas);
+                configChangePublisher.configChanged(nsPath, configChange);
+                docDependencyManager.configChanged(newDoc, configChange);
             }
 
             return Response.status(status).entity(diff).build();
@@ -128,7 +133,6 @@ public class DocumentResource {
      * Get a document or part of a document at yPath
      */
     @GET
-//    @Path("/{yPath}")
     @Path("{yPath: .+}")
     public Response getDoc(@NotNull @PathParam("yPath") String yPath,
                            @QueryParam("expandAliases") @DefaultValue("false") boolean expandAliases,
@@ -171,6 +175,31 @@ public class DocumentResource {
         }
     }
 
+    /**
+     * Get a document or part of a document at yPath
+     */
+    @GET
+    @Path("/dependencies/{namespacePath: .+}")
+    public Response getDocDependencies(@NotNull @PathParam("namespacePath") String nsPath) {
+
+        try {
+            // 1 key-value per document
+            // TODO: get sub-document at yPath
+            Optional<String> doc = kvStore.getValueAt(nsPath);
+            if (doc.isPresent()) {
+                Document d = new Document(doc.get());
+                String response = StringUtils.join(d.getNamespacePathDependencies(), '\n');
+                return Response.ok().entity(response).build();
+            } else {
+                return Response.status(Response.Status.NOT_FOUND).build();
+            }
+
+        } catch (IllegalArgumentException iae) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(iae.getMessage()).build();
+        }
+    }
+
     private DocType parseDocType(String docType) {
         try {
             return DocType.valueOf(docType.toUpperCase());
@@ -191,7 +220,7 @@ public class DocumentResource {
 
     private Map<String, Document> getDependentDocsFor(Document srcDoc) {
         Map<String, Document> dependencies = new HashMap<>();
-        for (String nsPath: srcDoc.getDependentNamespacePaths()) {
+        for (String nsPath: srcDoc.getNamespacePathDependencies()) {
             Optional<String> doc = kvStore.getValueAt(nsPath);
             if (!doc.isPresent()) {
                 throw new IllegalArgumentException("Cannot find alias target document at " + nsPath);

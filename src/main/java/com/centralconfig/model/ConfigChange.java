@@ -13,6 +13,9 @@ import java.util.SortedSet;
 public class ConfigChange {
 
     @JsonProperty
+    private final String namespacePath;
+
+    @JsonProperty
     private final String author;
 
     @JsonProperty
@@ -21,7 +24,8 @@ public class ConfigChange {
     @JsonProperty
     private final SortedSet<Delta> deltas;
 
-    public ConfigChange(String author, long modifiedAt, SortedSet<Delta> deltas) {
+    public ConfigChange(String namespacePath, String author, long modifiedAt, SortedSet<Delta> deltas) {
+        this.namespacePath = namespacePath;
         this.author = author;
         this.modifiedAt = modifiedAt;
         this.deltas = deltas;

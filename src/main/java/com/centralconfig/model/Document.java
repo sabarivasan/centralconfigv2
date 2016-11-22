@@ -110,7 +110,8 @@ public class Document implements DbSerializable<Document> {
     }
 
 
-    public Set<String> getDependentNamespacePaths() {
+    // The set of namespace paths this document depends on
+    public Set<String> getNamespacePathDependencies() {
         initAliasesDependencies();
         return namespaceDependencies;
     }
