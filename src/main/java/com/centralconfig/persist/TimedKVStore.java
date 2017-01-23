@@ -1,7 +1,6 @@
 package com.centralconfig.persist;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -23,7 +22,8 @@ import java.util.Optional;
  * This interface does not use any proprietary data types (like Document).
  * This makes it easy to have fewer KVStore implementations for different databases, for example
  *
- *
+ * //TODO: Need end timeline for key at timestamp. This means that requests for values for that key
+ * after that timestamp will return absent
  */
 public interface TimedKVStore {
 

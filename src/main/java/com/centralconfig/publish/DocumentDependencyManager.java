@@ -4,7 +4,7 @@ import com.centralconfig.dw.CentralConfigConfiguration;
 import com.centralconfig.model.Alias;
 import com.centralconfig.model.ConfigChange;
 import com.centralconfig.model.Delta;
-import com.centralconfig.model.Document;
+import com.centralconfig.model.YamlDocument;
 import com.centralconfig.persist.KVStore;
 
 import java.util.HashMap;
@@ -39,7 +39,7 @@ public class DocumentDependencyManager {
 
 
     // TODO: Receive a config change object here rather than the changed doc and update forward and backward correctly
-    public void configChanged(Document doc, ConfigChange configChange) {
+    public void configChanged(YamlDocument doc, ConfigChange configChange) {
         updateForwardBackward(doc);
 
 
@@ -49,7 +49,7 @@ public class DocumentDependencyManager {
             for (String nsPath: bds) {
                 Optional<String> ser = kvstore.getValueAt(nsPath);
                 if (ser.isPresent()) {
-                    Document d = new Document(ser.get());
+                    YamlDocument d = new YamlDocument(ser.get());
                     for (Alias alias : d.getAliases()) {
                         for (Delta forwardDelta : configChange.getDeltas()) {
                             int ind = forwardDelta.getLeafPath().indexOf(alias.getTo().getDocPath());
@@ -71,7 +71,7 @@ public class DocumentDependencyManager {
         }
     }
 
-    private void updateForwardBackward(Document doc) {
+    private void updateForwardBackward(YamlDocument doc) {
         for (String dep: doc.getNamespacePathDependencies()) {
             Set<String> f = forward.get(doc.getNamespacePath());
             if (f == null) {

@@ -1,20 +1,17 @@
 package com.centralconfig.resources;
 
 import com.centralconfig.dw.CentralConfigConfiguration;
-import com.centralconfig.model.ConfigChange;
 import com.centralconfig.model.Constants;
-import com.centralconfig.model.Delta;
 import com.centralconfig.model.DocType;
-import com.centralconfig.model.YamlDocument;
 import com.centralconfig.model.YPath;
-import com.centralconfig.parse.YamlDiffer;
+import com.centralconfig.model.YamlDocument;
 import com.centralconfig.parse.YamlSerDeser;
 import com.centralconfig.persist.DbSerializable;
 import com.centralconfig.persist.KVStore;
+import com.centralconfig.persist.TimedDocumentStore;
 import com.centralconfig.publish.ConfigChangePublisher;
 import com.centralconfig.publish.DocumentDependencyManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import retrofit.http.Body;
@@ -37,26 +34,28 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.SortedSet;
 
 /**
  * Resource to do CRUD operations on documents
  */
-@Path("/doc")
+@Path("/tdoc")
 @Consumes({MediaType.APPLICATION_JSON, "text/yaml"})
 @Produces({MediaType.APPLICATION_JSON, "text/yaml"})
-public class DocumentResource {
-    private static final Logger LOG = LoggerFactory.getLogger(DocumentResource.class);
+public class TimedDocumentResource {
+    private static final Logger LOG = LoggerFactory.getLogger(TimedDocumentResource.class);
 
     private final CentralConfigConfiguration config;
     private final KVStore kvStore;
+    private final TimedDocumentStore timedDocStore;
     private final ConfigChangePublisher configChangePublisher;
     private final DocumentDependencyManager docDependencyManager;
 
-    public DocumentResource(CentralConfigConfiguration config, KVStore kvStore, ConfigChangePublisher
-            configChangePublisher, DocumentDependencyManager docDependencyManager) {
+    public TimedDocumentResource(CentralConfigConfiguration config, KVStore kvStore, TimedDocumentStore timedDocStore,
+                                 ConfigChangePublisher configChangePublisher,
+                                 DocumentDependencyManager docDependencyManager) {
         this.config = config;
         this.kvStore = kvStore;
+        this.timedDocStore = timedDocStore;
         this.configChangePublisher = configChangePublisher;
         this.docDependencyManager = docDependencyManager;
     }
@@ -70,49 +69,15 @@ public class DocumentResource {
     public Response upsertDoc(@NotNull @PathParam("namespacePath") String nsPath,
                               @NotNull @Body InputStream body,
                               @QueryParam("author") @DefaultValue("unspecified") String author,
-                              @QueryParam("ensureAbsent") @DefaultValue("false") boolean ensureAbsent,
-                              @NotNull @HeaderParam("Content-Type") String contentType) {
+                              @NotNull @HeaderParam("Content-Type") String contentType,
+                              @QueryParam("at") Long tsRequested) {
 
         try {
             validateNsPath(nsPath);
-
-            // 1 key-value per document
-            // TODO: get sub-document at yPath
-            Optional<String> existing = kvStore.getValueAt(nsPath);
-            if (ensureAbsent && existing.isPresent()) {
-                return Response.status(Response.Status.PRECONDITION_FAILED)
-                        .entity(String.format("Document at namespace path '%s' already exists", nsPath)).build();
-            }
-
-            String diff;
-
-            YamlDocument newDoc = YamlSerDeser.parse(nsPath, body);
-            String serNewDoc = newDoc.ser();
-            Response.Status status;
-            boolean docChanged = true;
-            SortedSet<Delta> deltas = null;
-            if (existing.isPresent()) {
-                YamlDocument oldDoc = new YamlDocument(existing.get());
-                deltas = YamlDiffer.compare(oldDoc, newDoc);
-                docChanged = !deltas.isEmpty();
-                diff = StringUtils.join(deltas, '\n');
-                status = Response.Status.OK;
-            } else {
-                diff = serNewDoc;
-                status = Response.Status.CREATED;
-            }
-
-            // 1 key-value per document
-            if (docChanged) {
-                kvStore.put(nsPath, serNewDoc);
-
-                ConfigChange configChange = new ConfigChange(nsPath, author, System.currentTimeMillis(),
-                                                             deltas);
-                configChangePublisher.configChanged(nsPath, configChange);
-                docDependencyManager.configChanged(newDoc, configChange);
-            }
-
-            return Response.status(status).entity(diff).build();
+            long timestamp = tsRequested != null ? tsRequested : System.currentTimeMillis();
+            YamlDocument yamlDoc = YamlSerDeser.parse(nsPath, body);
+            timedDocStore.upsertYamlDocument(yamlDoc, timestamp, nsPath);
+            return Response.ok().entity(yamlDoc.ser()).build();
         } catch (IllegalArgumentException iae) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(iae.getMessage()).build();
@@ -136,21 +101,22 @@ public class DocumentResource {
     @Path("{yPath: .+}")
     public Response getDoc(@NotNull @PathParam("yPath") String yPath,
                            @QueryParam("expandAliases") @DefaultValue("false") boolean expandAliases,
-                           @QueryParam("format") @DefaultValue("yaml") String docType) {
+                           @QueryParam("format") @DefaultValue("yaml") String docType,
+                           @QueryParam("at") Long tsRequested) {
 
         try {
-            YPath fqPath = new YPath(yPath, config.getNumNamespaceLevels());
 
-            // 1 key-value per document
+            YPath fqPath = new YPath(yPath, config.getNumNamespaceLevels());
+            long timestamp = tsRequested != null ? tsRequested : System.currentTimeMillis();
             // TODO: get sub-document at yPath
-            Optional<String> doc = kvStore.getValueAt(fqPath.getNamespacePath());
+            Optional<YamlDocument> yamlDoc = timedDocStore.getYamlDocument(fqPath.getNamespacePath(), timestamp);
             Object entity;
-            if (doc.isPresent()) {
+            if (yamlDoc.isPresent()) {
                 DocType format = parseDocType(docType);
                 if (DocType.PROPERTIES == format) {
-                    entity = doc.get();
+                    entity = yamlDoc.get().ser();
                 } else {
-                    YamlDocument d = new YamlDocument(doc.get());
+                    YamlDocument d = yamlDoc.get();
 
                     if (expandAliases) {
                         d.expandAliases(getDependentDocsFor(d));
@@ -175,30 +141,6 @@ public class DocumentResource {
         }
     }
 
-    /**
-     * Get a document or part of a document at yPath
-     */
-    @GET
-    @Path("/dependencies/{namespacePath: .+}")
-    public Response getDocDependencies(@NotNull @PathParam("namespacePath") String nsPath) {
-
-        try {
-            // 1 key-value per document
-            // TODO: get sub-document at yPath
-            Optional<String> doc = kvStore.getValueAt(nsPath);
-            if (doc.isPresent()) {
-                YamlDocument d = new YamlDocument(doc.get());
-                String response = StringUtils.join(d.getNamespacePathDependencies(), '\n');
-                return Response.ok().entity(response).build();
-            } else {
-                return Response.status(Response.Status.NOT_FOUND).build();
-            }
-
-        } catch (IllegalArgumentException iae) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(iae.getMessage()).build();
-        }
-    }
 
     private DocType parseDocType(String docType) {
         try {

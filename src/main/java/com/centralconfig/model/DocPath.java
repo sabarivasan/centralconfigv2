@@ -1,5 +1,6 @@
 package com.centralconfig.model;
 
+
 /**
  * This class represents a document path which may be a leaf or partial (sub-tree)
  * This class is completely agnostic of the concept of namespaces.

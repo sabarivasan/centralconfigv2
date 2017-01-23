@@ -15,9 +15,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 /**
- * A document represents a yaml/json document with all its keys
+ * Represents a yaml/json document with all its keys and values.
+ * This class has no notion of time. It is simply a in-memory representation of a yaml/json document
  */
-public class Document implements DbSerializable<Document> {
+public class YamlDocument implements DbSerializable<YamlDocument> {
     private final String namespacePath;
     private final SortedSet<LeafNode> leaves;
     private SortedSet<LeafNode> leavesAliasesExpanded = null;
@@ -26,7 +27,7 @@ public class Document implements DbSerializable<Document> {
     private Set<Alias> aliases = null;
     private Set<String> namespaceDependencies = null;
 
-    public Document(String ser) {
+    public YamlDocument(String ser) {
         String[] rows = ser.split(DbSerializable.SER_ROW_SEPARATOR);
         namespacePath = rows[0].split(DbSerializable.SER_KEY_VALUE_SEPARATOR)[1];
         this.numNamespaceLevels = namespacePath.split(DbSerializable.HIER_SEPARATOR).length;
@@ -41,14 +42,14 @@ public class Document implements DbSerializable<Document> {
         this.leaves = Collections.unmodifiableSortedSet(lvs);
     }
 
-    public Document(String namespacePath, SortedSet<LeafNode> leaves) {
+    public YamlDocument(String namespacePath, SortedSet<LeafNode> leaves) {
         this.namespacePath = namespacePath;
         this.numNamespaceLevels = namespacePath.split(DbSerializable.HIER_SEPARATOR).length;
         this.leaves = Collections.unmodifiableSortedSet(leaves);
     }
 
 
-    public SortedSet<Delta> compareWith(Document right) {
+    public SortedSet<Delta> compareWith(YamlDocument right) {
         return YamlDiffer.compare(this, right);
     }
 
@@ -104,9 +105,11 @@ public class Document implements DbSerializable<Document> {
         }
     }
 
+
+
     @Override
-    public Document deser(String ser) {
-        return new Document(ser);
+    public YamlDocument deser(String ser) {
+        return new YamlDocument(ser);
     }
 
 
@@ -143,7 +146,7 @@ public class Document implements DbSerializable<Document> {
      * //TODO: Should we support nested alias references?
      * @param dependentDocs
      */
-    public void expandAliases(Map<String, Document> dependentDocs) {
+    public void expandAliases(Map<String, YamlDocument> dependentDocs) {
         initAliasesDependencies();
         if (leavesAliasesExpanded == null) {
             leavesAliasesExpanded = new TreeSet<>();
@@ -151,7 +154,7 @@ public class Document implements DbSerializable<Document> {
                 if (leaf.isAlias()) {
                     YPath from = new YPath(namespacePath, leaf.getLeaf().getDocPath());
                     YPath to = new YPath(leaf.getValue().getAliasDestination(), numNamespaceLevels);
-                    Document dependent = dependentDocs.get(to.getNamespacePath());
+                    YamlDocument dependent = dependentDocs.get(to.getNamespacePath());
                     if (dependent == null) {
                         throw new IllegalStateException(String.format("Dependent doc not provided. From:%s To:%s",
                                                                       from.getFullPath(), to.getFullPath()));
@@ -236,12 +239,12 @@ public class Document implements DbSerializable<Document> {
             return false;
         }
 
-        Document document = (Document) o;
+        YamlDocument yamlDocument = (YamlDocument) o;
 
-        if (!getNamespacePath().equals(document.getNamespacePath())) {
+        if (!getNamespacePath().equals(yamlDocument.getNamespacePath())) {
             return false;
         }
-        return getLeaves().equals(document.getLeaves());
+        return getLeaves().equals(yamlDocument.getLeaves());
     }
 
     @Override

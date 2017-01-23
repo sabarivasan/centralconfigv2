@@ -17,7 +17,8 @@ import java.util.TreeSet;
  * Created by sabarivasan on 1/19/17.
  */
 public class TimedConsulKVStore implements TimedKVStore {
-    static final String KEY_TIMESTAMP_SEPARATOR = "/";
+    static final String KEY_TIMESTAMP_SEPARATOR = DbSerializable.HIER_SEPARATOR + "__history__"
+            + DbSerializable.HIER_SEPARATOR;
 
     // We only support timestamps in millis that are 13 digits long
     // In other words, from Sun, 09 Sep 2001 01:46:40 GMT through Sat, 20 Nov 2286 17:46:39.999 GMT
@@ -39,6 +40,7 @@ public class TimedConsulKVStore implements TimedKVStore {
 
     @Override
     public void putAt(String key, String value, long timestampMillis) throws IOException {
+        //TODO: read first and don't store if nothing changed???
         if (!client.setKVValue(KeyHelper.key(key, timestampMillis), value).getValue()) {
             throw new IOException("Write failed");
         }
@@ -72,24 +74,30 @@ public class TimedConsulKVStore implements TimedKVStore {
         }
     }
 
+    /**
+     * A utility class that constructs keys based on conventions
+     */
     private static class KeyHelper {
 
         // Consul key for a specific timestamp
-        private static final String key(String key, long timestampMillis) {
+        private static String key(String key, long timestampMillis) {
             String tsMillisStr = String.valueOf(timestampMillis);
             if (TIMESTAMP_LENGTH != tsMillisStr.length()) {
                 throw new IllegalArgumentException("TimestampMillis must be 13 digits long");
             }
-            return keyPrefixForAllTimestamps(key)+ tsMillisStr;
+            return keyPrefixForAllTimestamps(key) + tsMillisStr;
         }
 
         // Consul key prefix for all timestamps of a given key
-        private static final String keyPrefixForAllTimestamps(String key) {
+        private static String keyPrefixForAllTimestamps(String key) {
             return key + KEY_TIMESTAMP_SEPARATOR;
         }
 
     }
 
+    /**
+     * A class that searches the timeline (history) for a key for a specific timestamp
+     */
     private static class SearchHelper {
 
         /**

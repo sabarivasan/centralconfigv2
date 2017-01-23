@@ -3,7 +3,7 @@ package com.centralconfig.parse;
 import com.centralconfig.model.DataType;
 import com.centralconfig.model.DocPath;
 import com.centralconfig.model.DocType;
-import com.centralconfig.model.Document;
+import com.centralconfig.model.YamlDocument;
 import com.centralconfig.model.LeafNode;
 import com.centralconfig.model.Value;
 import com.centralconfig.persist.DbSerializable;
@@ -39,8 +39,8 @@ public final class YamlSerDeser {
      * @param expandAliases         should aliases in the document be expanded?
      * @throws IOException          in case something goes wrong
      */
-    public static void write(Document doc, DocType docType, OutputStream outputStream,
-                                 boolean expandAliases) throws IOException {
+    public static void write(YamlDocument doc, DocType docType, OutputStream outputStream,
+                             boolean expandAliases) throws IOException {
 
         try (OutputStream os = outputStream) {
             JsonFactory factory = DocType.YAML == docType ? new YAMLFactory() : new JsonFactory();
@@ -57,7 +57,7 @@ public final class YamlSerDeser {
      * @return              a Document instance
      * @throws IOException
      */
-    public static Document parse(final String namespacePath, final InputStream doc) throws IOException {
+    public static YamlDocument parse(final String namespacePath, final InputStream doc) throws IOException {
 
         try (InputStream is = doc) {
             SortedSet<LeafNode> leaves = new TreeSet<>();
@@ -65,7 +65,7 @@ public final class YamlSerDeser {
             Map<?, ?> root = mapper.readValue(is, Map.class);
             List<String> currPath = new ArrayList<>();
             visitMap(leaves, root, currPath);
-            return new Document(namespacePath, leaves);
+            return new YamlDocument(namespacePath, leaves);
         }
     }
 

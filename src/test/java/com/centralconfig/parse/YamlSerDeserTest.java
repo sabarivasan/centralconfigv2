@@ -1,7 +1,7 @@
 package com.centralconfig.parse;
 
 import com.centralconfig.model.DocType;
-import com.centralconfig.model.Document;
+import com.centralconfig.model.YamlDocument;
 import junit.framework.TestCase;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
@@ -25,7 +25,7 @@ public class YamlSerDeserTest {
 
             // Parse canonical document
             String ext = docTypeToTest.toString().toLowerCase();
-            Document doc = YamlSerDeser.parse("blah", getClass().getResourceAsStream("canonical." + ext));
+            YamlDocument doc = YamlSerDeser.parse("blah", getClass().getResourceAsStream("canonical." + ext));
 
             // Verify that there are 23 leaf nodes
             TestCase.assertEquals(23, doc.getLeaves().size());
@@ -42,7 +42,7 @@ public class YamlSerDeserTest {
             YamlSerDeser.write(doc, docTypeToTest, new FileOutputStream(temp), false);
 
             // Parse serialized file
-            Document doc2 = YamlSerDeser.parse("blah", new FileInputStream(temp));
+            YamlDocument doc2 = YamlSerDeser.parse("blah", new FileInputStream(temp));
 
             // Test the document instances are equal
             TestCase.assertEquals(doc2, doc);

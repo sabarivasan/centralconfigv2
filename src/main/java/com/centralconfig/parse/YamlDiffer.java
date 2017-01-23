@@ -2,7 +2,7 @@ package com.centralconfig.parse;
 
 
 import com.centralconfig.model.Delta;
-import com.centralconfig.model.Document;
+import com.centralconfig.model.YamlDocument;
 import com.centralconfig.model.LeafNode;
 import com.centralconfig.model.Value;
 
@@ -16,7 +16,7 @@ public final class YamlDiffer {
 
     private YamlDiffer() { }
 
-    public static SortedSet<Delta> compare(Document left, Document right) {
+    public static SortedSet<Delta> compare(YamlDocument left, YamlDocument right) {
         SortedSet<Delta> deltas = new TreeSet<>();
         for (LeafNode l: left.getLeaves()) {
             String leafPath = l.getLeaf().getDocPath();

@@ -2,6 +2,7 @@ package com.centralconfig.persist;
 
 import junit.framework.TestCase;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.util.Random;
  * Test for TimedConsulKVStore
  * Created by sabarivasan on 1/20/17.
  */
+@Ignore
 public class TimedConsulKVStoreTest {
     private static final String TEST_KEY_PREFIX = "test";
     private static final String TEST_VALUE_PREFIX = "value";
