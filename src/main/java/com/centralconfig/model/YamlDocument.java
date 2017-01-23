@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
@@ -183,7 +184,7 @@ public class YamlDocument implements DbSerializable<YamlDocument> {
         if (expandAliases && leavesAliasesExpanded == null) {
             throw new InternalError("getAsMap(expandAliases=true) called before expandAliases()");
         }
-        Map root = new HashMap<>();
+        Map root = new TreeMap<>();
         for (LeafNode leaf: (expandAliases ? leavesAliasesExpanded : leaves)) {
             visitLeaf(leaf, root);
         }
